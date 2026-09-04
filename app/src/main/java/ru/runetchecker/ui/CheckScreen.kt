@@ -1,6 +1,7 @@
 package ru.runetchecker.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,8 +51,10 @@ import ru.runetchecker.R
 import ru.runetchecker.domain.NetworkState
 import ru.runetchecker.domain.ProbeGroup
 import ru.runetchecker.domain.ProbeResult
+import ru.runetchecker.domain.VpnStatus
 import ru.runetchecker.settings.AppLanguage
 import ru.runetchecker.settings.ThemeMode
+import java.util.Locale
 
 @Composable
 fun CheckScreen(
@@ -117,7 +120,7 @@ fun CheckScreenContent(
                 fontWeight = FontWeight.SemiBold,
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = statusLabel(result?.state),
@@ -134,6 +137,11 @@ fun CheckScreenContent(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp),
             )
+
+            uiState.vpn?.let { vpn ->
+                Spacer(modifier = Modifier.height(16.dp))
+                VpnStatusBlock(vpn = vpn)
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -157,7 +165,7 @@ fun CheckScreenContent(
                 onToggle = { whitelistExpanded = !whitelistExpanded },
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             ExpandableLogs(
                 probes = result?.probes.orEmpty(),
@@ -241,6 +249,53 @@ private fun SettingsRow(
 }
 
 @Composable
+private fun VpnStatusBlock(vpn: VpnStatus) {
+    val locale = Locale.getDefault()
+    val line = when {
+        !vpn.active -> stringResource(R.string.vpn_off)
+        vpn.countryCode.isNullOrBlank() -> stringResource(R.string.vpn_on_unknown)
+        else -> {
+            val countryName = Locale.Builder()
+                .setRegion(vpn.countryCode)
+                .build()
+                .getDisplayCountry(locale)
+                .ifBlank { vpn.countryCode }
+            val flag = countryFlagEmoji(vpn.countryCode)
+            val country = if (flag != null) "$flag  $countryName" else countryName
+            stringResource(R.string.vpn_on_country, country)
+        }
+    }
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+            )
+            if (vpn.isForeign) {
+                Text(
+                    text = stringResource(R.string.vpn_foreign_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun countryFlagEmoji(code: String): String? {
+    val iso = code.trim().uppercase()
+    if (iso.length != 2 || iso.any { it !in 'A'..'Z' }) return null
+    val regionalIndicatorA = 0x1F1E6
+    return buildString {
+        iso.forEach { letter ->
+            appendCodePoint(regionalIndicatorA + (letter - 'A'))
+        }
+    }
+}
+
+@Composable
 private fun ExpandableProbeGroup(
     label: String,
     reached: Int?,
@@ -249,32 +304,37 @@ private fun ExpandableProbeGroup(
     expanded: Boolean,
     onToggle: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        ExpandableHeader(
-            title = label,
-            trailing = if (reached == null || total == null) {
-                stringResource(R.string.counts_placeholder)
-            } else {
-                "$reached / $total"
-            },
-            expanded = expanded,
-            onToggle = onToggle,
-            enabled = true,
-        )
-        AnimatedVisibility(visible = expanded) {
-            Column(
-                modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (probes.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.logs_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+            ExpandableHeader(
+                title = label,
+                trailing = if (reached == null || total == null) {
+                    stringResource(R.string.counts_placeholder)
                 } else {
-                    probes.forEach { probe ->
-                        HostStatusRow(probe = probe)
+                    "$reached / $total"
+                },
+                expanded = expanded,
+                onToggle = onToggle,
+                enabled = true,
+            )
+            AnimatedVisibility(visible = expanded) {
+                Column(
+                    modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (probes.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.logs_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        probes.forEach { probe ->
+                            HostStatusRow(probe = probe)
+                        }
                     }
                 }
             }
@@ -305,8 +365,8 @@ private fun ExpandableLogs(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (expanded) "▾  ${stringResource(R.string.technical_details)}"
-                        else "▸  ${stringResource(R.string.technical_details)}",
+                        text = if (expanded) "▾  ${stringResource(R.string.logs)}"
+                        else "▸  ${stringResource(R.string.logs)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                     )

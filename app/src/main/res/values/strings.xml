@@ -13,7 +13,7 @@
     <string name="host_reachable">доступен</string>
     <string name="host_unreachable">недоступен</string>
     <string name="status_none">—</string>
-    <string name="status_online_desc">Полноценный интернет доступен</string>
+    <string name="status_online_desc">Интернет полностью доступен</string>
     <string name="status_whitelist_desc">Доступны только разрешённые ресурсы</string>
     <string name="status_offline_desc">Интернет фактически отсутствует</string>
     <string name="status_unknown_desc">Не удалось завершить проверку</string>
@@ -25,4 +25,8 @@
     <string name="language_en">EN</string>
     <string name="expand">Развернуть</string>
     <string name="collapse">Свернуть</string>
+    <string name="vpn_off">VPN выкл</string>
+    <string name="vpn_on_country">VPN вкл · %1$s</string>
+    <string name="vpn_on_unknown">VPN вкл · страна неизвестна</string>
+    <string name="vpn_foreign_warning">Российские сервисы могут не работать. Смените сервер VPN или настройте маршрутизацию по приложениям.</string>
 </resources>
