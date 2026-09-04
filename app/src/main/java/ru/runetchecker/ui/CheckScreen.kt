@@ -1,6 +1,7 @@
 package ru.runetchecker.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import ru.runetchecker.BuildConfig
 import ru.runetchecker.domain.NetworkState
 
 @Composable
@@ -34,6 +36,7 @@ fun CheckScreen(
     CheckScreenContent(
         uiState = uiState,
         onCheckClick = viewModel::check,
+        versionName = BuildConfig.VERSION_NAME,
     )
 }
 
@@ -41,18 +44,24 @@ fun CheckScreen(
 fun CheckScreenContent(
     uiState: CheckUiState,
     onCheckClick: () -> Unit,
+    versionName: String,
     modifier: Modifier = Modifier,
 ) {
     val result = uiState.result
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .safeDrawingPadding()
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
         Text(
             text = "RuNet Checker",
             style = MaterialTheme.typography.headlineMedium,
@@ -115,6 +124,16 @@ fun CheckScreenContent(
         ) {
             Text(if (uiState.isChecking) "Проверка…" else "Проверить")
         }
+    }
+
+        Text(
+            text = versionName,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp),
+        )
     }
 }
 
