@@ -58,6 +58,7 @@ fun SettingsScreen(
     var autoCheck by remember { mutableStateOf(settings.autoCheckEnabled()) }
     var intervalText by remember { mutableStateOf(settings.autoCheckIntervalSeconds().toString()) }
     var unlimited by remember { mutableStateOf(settings.popupUnlimited()) }
+    var popupsOff by remember { mutableStateOf(!settings.popupEnabled()) }
     var cooldownText by remember { mutableStateOf(settings.popupCooldownSeconds().toString()) }
     var maxHourText by remember { mutableStateOf(settings.popupMaxPerHour().toString()) }
     var batteryUnrestricted by remember { mutableStateOf(context.ignoresBatteryOptimizations()) }
@@ -158,42 +159,54 @@ fun SettingsScreen(
             )
 
             SettingSwitchRow(
-                title = stringResource(R.string.popup_unlimited),
-                hint = stringResource(R.string.popup_unlimited_hint),
-                checked = unlimited,
-                onCheckedChange = { enabled ->
-                    unlimited = enabled
-                    settings.setPopupUnlimited(enabled)
+                title = stringResource(R.string.popup_disabled),
+                hint = stringResource(R.string.popup_disabled_hint),
+                checked = popupsOff,
+                onCheckedChange = { disabled ->
+                    popupsOff = disabled
+                    settings.setPopupEnabled(!disabled)
                 },
             )
 
-            if (!unlimited) {
-                OutlinedTextField(
-                    value = cooldownText,
-                    onValueChange = { value ->
-                        cooldownText = value.filter { it.isDigit() }
-                        value.filter { it.isDigit() }.toIntOrNull()?.let { seconds ->
-                            settings.setPopupCooldownSeconds(seconds)
-                        }
+            if (!popupsOff) {
+                SettingSwitchRow(
+                    title = stringResource(R.string.popup_unlimited),
+                    hint = stringResource(R.string.popup_unlimited_hint),
+                    checked = unlimited,
+                    onCheckedChange = { enabled ->
+                        unlimited = enabled
+                        settings.setPopupUnlimited(enabled)
                     },
-                    label = { Text(stringResource(R.string.popup_cooldown)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
-                    value = maxHourText,
-                    onValueChange = { value ->
-                        maxHourText = value.filter { it.isDigit() }
-                        value.filter { it.isDigit() }.toIntOrNull()?.let { max ->
-                            if (max >= 1) settings.setPopupMaxPerHour(max)
-                        }
-                    },
-                    label = { Text(stringResource(R.string.popup_max_hour)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+
+                if (!unlimited) {
+                    OutlinedTextField(
+                        value = cooldownText,
+                        onValueChange = { value ->
+                            cooldownText = value.filter { it.isDigit() }
+                            value.filter { it.isDigit() }.toIntOrNull()?.let { seconds ->
+                                settings.setPopupCooldownSeconds(seconds)
+                            }
+                        },
+                        label = { Text(stringResource(R.string.popup_cooldown)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = maxHourText,
+                        onValueChange = { value ->
+                            maxHourText = value.filter { it.isDigit() }
+                            value.filter { it.isDigit() }.toIntOrNull()?.let { max ->
+                                if (max >= 1) settings.setPopupMaxPerHour(max)
+                            }
+                        },
+                        label = { Text(stringResource(R.string.popup_max_hour)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }

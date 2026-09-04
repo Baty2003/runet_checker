@@ -119,4 +119,21 @@ class PopupLimiterTest {
             ),
         )
     }
+
+    @Test
+    fun disabled_blocksEvenOnChange() {
+        assertFalse(
+            PopupLimiter.shouldPopup(
+                newState = NetworkState.OFFLINE,
+                lastCheckState = NetworkState.ONLINE,
+                nowMs = 2_000L,
+                lastPopupAtMs = null,
+                popupTimesMs = emptyList(),
+                unlimited = true,
+                cooldownMs = 0L,
+                maxPerHour = 6,
+                enabled = false,
+            ),
+        )
+    }
 }

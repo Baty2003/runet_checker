@@ -180,6 +180,7 @@ class StatusNotifier(
             unlimited = settings.popupUnlimited(),
             cooldownMs = settings.popupCooldownSeconds() * 1000L,
             maxPerHour = settings.popupMaxPerHour(),
+            enabled = settings.popupEnabled(),
         )
         if (!allowed) {
             val hanging = settings.lastPoppedState()

@@ -41,7 +41,13 @@ class SettingsStore(context: Context) {
         prefs.edit().putInt(KEY_AUTO_INTERVAL, seconds.coerceAtLeast(AUTO_CHECK_MIN_SECONDS)).apply()
     }
 
-    fun popupUnlimited(): Boolean = prefs.getBoolean(KEY_POPUP_UNLIMITED, false)
+    fun popupEnabled(): Boolean = prefs.getBoolean(KEY_POPUP_ENABLED, true)
+
+    fun setPopupEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_POPUP_ENABLED, enabled).apply()
+    }
+
+    fun popupUnlimited(): Boolean = prefs.getBoolean(KEY_POPUP_UNLIMITED, true)
 
     fun setPopupUnlimited(unlimited: Boolean) {
         prefs.edit().putBoolean(KEY_POPUP_UNLIMITED, unlimited).apply()
@@ -119,6 +125,7 @@ class SettingsStore(context: Context) {
         private const val KEY_THEME = "theme"
         private const val KEY_AUTO_CHECK = "auto_check"
         private const val KEY_AUTO_INTERVAL = "auto_interval_sec"
+        private const val KEY_POPUP_ENABLED = "popup_enabled"
         private const val KEY_POPUP_UNLIMITED = "popup_unlimited"
         private const val KEY_POPUP_COOLDOWN = "popup_cooldown_sec"
         private const val KEY_POPUP_MAX_HOUR = "popup_max_hour"

@@ -49,6 +49,8 @@
     <string name="auto_check_interval_hint">Minimum %1$d</string>
     <string name="battery_unrestricted">Unrestricted battery</string>
     <string name="battery_unrestricted_hint">Keeps auto-check from being put to sleep</string>
+    <string name="popup_disabled">Disable popups</string>
+    <string name="popup_disabled_hint">Only the persistent notification remains</string>
     <string name="popup_unlimited">No popup limits</string>
     <string name="popup_unlimited_hint">Every status change shows an alert immediately</string>
     <string name="popup_cooldown">Pause between popups, seconds</string>

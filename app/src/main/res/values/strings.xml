@@ -49,6 +49,8 @@
     <string name="auto_check_interval_hint">Минимум %1$d</string>
     <string name="battery_unrestricted">Не ограничивать батарею</string>
     <string name="battery_unrestricted_hint">Чтобы автопроверка не засыпала в фоне</string>
+    <string name="popup_disabled">Отключить всплывашки</string>
+    <string name="popup_disabled_hint">Останется только постоянное уведомление</string>
     <string name="popup_unlimited">Без ограничений на всплывашки</string>
     <string name="popup_unlimited_hint">Каждая смена статуса сразу в уведомлении</string>
     <string name="popup_cooldown">Пауза между всплывашками, секунды</string>

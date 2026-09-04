@@ -12,8 +12,10 @@ object PopupLimiter {
         unlimited: Boolean,
         cooldownMs: Long,
         maxPerHour: Int,
+        enabled: Boolean = true,
     ): Boolean {
         if (lastCheckState == newState) return false
+        if (!enabled) return false
         if (unlimited) return true
         if (lastPopupAtMs != null && nowMs - lastPopupAtMs < cooldownMs) return false
         val hourAgo = nowMs - HOUR_MS
