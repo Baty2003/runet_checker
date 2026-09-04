@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RuNet Checker</string>
+    <string name="global_internet">Global internet</string>
+    <string name="whitelist">Whitelist</string>
+    <string name="logs">Logs</string>
+    <string name="logs_empty">No check has been run yet</string>
+    <string name="technical_details">Technical details</string>
+    <string name="technical_details_hint">For advanced users</string>
+    <string name="check">Check</string>
+    <string name="checking">Checking…</string>
+    <string name="counts_placeholder">— / —</string>
+    <string name="host_reachable">reachable</string>
+    <string name="host_unreachable">unreachable</string>
+    <string name="status_none">—</string>
+    <string name="status_online_desc">Full internet access is available</string>
+    <string name="status_whitelist_desc">Only allowed resources are available</string>
+    <string name="status_offline_desc">The internet is effectively unavailable</string>
+    <string name="status_unknown_desc">The check could not be completed</string>
+    <string name="status_idle_desc">Tap Check to see the current network state</string>
+    <string name="theme_system">Auto</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="language_ru">RU</string>
+    <string name="language_en">EN</string>
+    <string name="expand">Expand</string>
+    <string name="collapse">Collapse</string>
+</resources>

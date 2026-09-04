@@ -23,7 +23,11 @@ class NetworkChecker(
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {
-                        ProbeResult(target = target, reachable = false)
+                        ProbeResult(
+                            target = target,
+                            reachable = false,
+                            errorMessage = "checker failed",
+                        )
                     }
                 }
             }.awaitAll()
