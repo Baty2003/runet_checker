@@ -28,7 +28,7 @@ class SettingsStore(context: Context) {
         prefs.edit().putString(KEY_THEME, mode.name).apply()
     }
 
-    fun autoCheckEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_CHECK, false)
+    fun autoCheckEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_CHECK, true)
 
     fun setAutoCheckEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_AUTO_CHECK, enabled).apply()

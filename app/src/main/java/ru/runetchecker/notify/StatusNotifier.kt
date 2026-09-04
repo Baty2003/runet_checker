@@ -148,12 +148,24 @@ class StatusNotifier(
     private fun buildOngoingText(result: CheckResult?, vpn: VpnStatus?): String = buildString {
         append(vpnLine(vpn))
         if (result != null) {
-            append("  ·  G ${result.globalReached}/${result.globalTotal}")
-            append("  ·  W ${result.whitelistReached}/${result.whitelistTotal}")
+            append('\n')
+            append(
+                str(
+                    R.string.notification_counts,
+                    result.globalReached,
+                    result.globalTotal,
+                    result.whitelistReached,
+                    result.whitelistTotal,
+                ),
+            )
         }
         if (result?.state == NetworkState.WHITELIST && vpn?.active != true) {
             append('\n')
             append(str(R.string.whitelist_vpn_reminder))
+        }
+        if (result?.state == NetworkState.OFFLINE && vpn?.active == true) {
+            append('\n')
+            append(str(R.string.vpn_offline_warning))
         }
     }
 

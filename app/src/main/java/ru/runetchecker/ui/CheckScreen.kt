@@ -37,6 +37,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -57,11 +58,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
 import ru.runetchecker.BuildConfig
+import ru.runetchecker.RuNetCheckerApp
 import ru.runetchecker.R
 import ru.runetchecker.domain.NetworkState
 import ru.runetchecker.domain.ProbeGroup
 import ru.runetchecker.domain.ProbeResult
 import ru.runetchecker.domain.VpnStatus
+import ru.runetchecker.monitor.requestIgnoreBatteryOptimizations
 import ru.runetchecker.settings.AppLanguage
 import ru.runetchecker.settings.ThemeMode
 import java.util.Locale
@@ -85,6 +88,13 @@ fun CheckScreen(
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    LaunchedEffect(Unit) {
+        val app = context.applicationContext as RuNetCheckerApp
+        if (app.settings.autoCheckEnabled()) {
+            requestNotificationsIfNeeded()
+            context.requestIgnoreBatteryOptimizations()
         }
     }
     if (showSettings) {

@@ -63,7 +63,7 @@ class VpnDetector(
 
     companion object {
         private const val GEO_URL = "https://ifconfig.co/json"
-        private const val USER_AGENT = "runet-checker/0.2.0"
+        private const val USER_AGENT = "runet-checker/1.0.0"
 
         private val countryIsoRegex = Regex("\"country_iso\"\\s*:\\s*\"([A-Za-z]{2})\"")
 

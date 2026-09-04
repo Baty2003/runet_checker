@@ -37,6 +37,7 @@
     <string name="whitelist_vpn_reminder">Включите VPN для белых списков</string>
     <string name="notification_checking">Проверка…</string>
     <string name="notification_checking_detail">Попытка %1$d / %2$d · %3$d с</string>
+    <string name="notification_counts">Глобальный %1$d/%2$d · Белый список %3$d/%4$d</string>
     <string name="check_attempt">Попытка %1$d / %2$d</string>
     <string name="check_source_auto">Автопроверка</string>
     <string name="check_source_manual">Ручная проверка</string>
@@ -46,6 +47,8 @@
     <string name="auto_check_hint">Фоновая проверка с постоянным уведомлением</string>
     <string name="auto_check_interval">Интервал, секунды</string>
     <string name="auto_check_interval_hint">Минимум %1$d</string>
+    <string name="battery_unrestricted">Не ограничивать батарею</string>
+    <string name="battery_unrestricted_hint">Чтобы автопроверка не засыпала в фоне</string>
     <string name="popup_unlimited">Без ограничений на всплывашки</string>
     <string name="popup_unlimited_hint">Каждая смена статуса сразу в уведомлении</string>
     <string name="popup_cooldown">Пауза между всплывашками, секунды</string>

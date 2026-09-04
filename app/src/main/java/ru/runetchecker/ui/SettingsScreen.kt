@@ -26,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,10 +37,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import ru.runetchecker.R
 import ru.runetchecker.RuNetCheckerApp
 import ru.runetchecker.domain.AUTO_CHECK_MIN_SECONDS
 import ru.runetchecker.monitor.MonitorService
+import ru.runetchecker.monitor.ignoresBatteryOptimizations
+import ru.runetchecker.monitor.openBatteryOptimizationSettings
+import ru.runetchecker.monitor.requestIgnoreBatteryOptimizations
 
 @Composable
 fun SettingsScreen(
@@ -53,6 +60,17 @@ fun SettingsScreen(
     var unlimited by remember { mutableStateOf(settings.popupUnlimited()) }
     var cooldownText by remember { mutableStateOf(settings.popupCooldownSeconds().toString()) }
     var maxHourText by remember { mutableStateOf(settings.popupMaxPerHour().toString()) }
+    var batteryUnrestricted by remember { mutableStateOf(context.ignoresBatteryOptimizations()) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                batteryUnrestricted = context.ignoresBatteryOptimizations()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -98,6 +116,7 @@ fun SettingsScreen(
                         if (Build.VERSION.SDK_INT >= 33) {
                             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
+                        context.requestIgnoreBatteryOptimizations()
                         MonitorService.start(context)
                     } else {
                         MonitorService.stop(context)
@@ -123,6 +142,19 @@ fun SettingsScreen(
                 singleLine = true,
                 enabled = autoCheck,
                 modifier = Modifier.fillMaxWidth(),
+            )
+
+            SettingSwitchRow(
+                title = stringResource(R.string.battery_unrestricted),
+                hint = stringResource(R.string.battery_unrestricted_hint),
+                checked = batteryUnrestricted,
+                onCheckedChange = { enabled ->
+                    if (enabled) {
+                        context.requestIgnoreBatteryOptimizations()
+                    } else {
+                        context.openBatteryOptimizationSettings()
+                    }
+                },
             )
 
             SettingSwitchRow(
