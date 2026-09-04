@@ -64,6 +64,7 @@ import ru.runetchecker.domain.NetworkState
 import ru.runetchecker.domain.ProbeGroup
 import ru.runetchecker.domain.ProbeResult
 import ru.runetchecker.domain.VpnStatus
+import ru.runetchecker.monitor.LocalConnectivity
 import ru.runetchecker.monitor.requestIgnoreBatteryOptimizations
 import ru.runetchecker.settings.AppLanguage
 import ru.runetchecker.settings.ThemeMode
@@ -92,6 +93,9 @@ fun CheckScreen(
     }
     LaunchedEffect(Unit) {
         val app = context.applicationContext as RuNetCheckerApp
+        if (LocalConnectivity.shouldPauseChecks(context)) {
+            app.repository.showInterfacesOff()
+        }
         if (app.settings.autoCheckEnabled()) {
             requestNotificationsIfNeeded()
             context.requestIgnoreBatteryOptimizations()
@@ -165,15 +169,27 @@ fun CheckScreenContent(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = statusLabel(result?.state),
-                color = statusColor(result?.state),
+                text = when {
+                    uiState.airplaneMode -> stringResource(R.string.status_airplane)
+                    uiState.radiosOff -> stringResource(R.string.status_radios_off)
+                    else -> statusLabel(result?.state)
+                },
+                color = if (uiState.checksPaused) {
+                    statusColor(NetworkState.OFFLINE)
+                } else {
+                    statusColor(result?.state)
+                },
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
 
             Text(
-                text = statusDescription(result?.state),
+                text = when {
+                    uiState.airplaneMode -> stringResource(R.string.status_airplane_desc)
+                    uiState.radiosOff -> stringResource(R.string.status_radios_off_desc)
+                    else -> statusDescription(result?.state)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -184,7 +200,9 @@ fun CheckScreenContent(
                 Spacer(modifier = Modifier.height(16.dp))
                 VpnStatusBlock(
                     vpn = vpn,
-                    showOfflineVpnWarning = vpn.active && result?.state == NetworkState.OFFLINE,
+                    showOfflineVpnWarning = !uiState.checksPaused &&
+                        vpn.active &&
+                        result?.state == NetworkState.OFFLINE,
                 )
             }
 

@@ -22,6 +22,10 @@
     <string name="status_offline_desc">The internet is effectively unavailable</string>
     <string name="status_unknown_desc">The check could not be completed</string>
     <string name="status_idle_desc">Tap Check to see the current network state</string>
+    <string name="status_radios_off">Internet is off</string>
+    <string name="status_radios_off_desc">Wi‑Fi and mobile data are turned off</string>
+    <string name="status_airplane">Airplane mode</string>
+    <string name="status_airplane_desc">Checks are paused</string>
     <string name="theme_system">Auto</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>

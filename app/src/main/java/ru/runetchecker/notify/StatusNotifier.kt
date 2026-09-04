@@ -17,6 +17,7 @@ import ru.runetchecker.R
 import ru.runetchecker.domain.CheckResult
 import ru.runetchecker.domain.NetworkState
 import ru.runetchecker.domain.VpnStatus
+import ru.runetchecker.monitor.LocalConnectivity
 import ru.runetchecker.monitor.MonitorService
 import ru.runetchecker.settings.SettingsStore
 import ru.runetchecker.settings.withAppLocale
@@ -29,6 +30,7 @@ class StatusNotifier(
     private val appContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
     private var pendingAlert: Runnable? = null
+    @Volatile private var popupsSuppressed: Boolean = false
 
     private fun localized(): Context = appContext.withAppLocale(settings.language())
 
@@ -88,6 +90,27 @@ class StatusNotifier(
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
 
+        if (state.checksPaused) {
+            val title = if (state.airplaneMode) {
+                str(R.string.status_airplane)
+            } else {
+                str(R.string.status_radios_off)
+            }
+            val detail = if (state.airplaneMode) {
+                str(R.string.status_airplane_desc)
+            } else {
+                str(R.string.status_radios_off_desc)
+            }
+            return pinOngoing(
+                builder
+                    .setContentTitle(title)
+                    .setContentText(detail)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
+                    .setProgress(0, 0, false)
+                    .build(),
+            )
+        }
+
         if (state.isChecking) {
             val title = str(R.string.notification_checking)
             val detail = str(
@@ -127,8 +150,25 @@ class StatusNotifier(
         }
     }
 
+    fun suppressAlerts() {
+        popupsSuppressed = true
+        mainHandler.post {
+            pendingAlert?.let { mainHandler.removeCallbacks(it) }
+            pendingAlert = null
+            dismissPostedAlert()
+        }
+    }
+
+    fun resumeAlerts() {
+        popupsSuppressed = false
+    }
+
     fun onCheckFinished(result: CheckResult, vpn: VpnStatus, showOngoing: Boolean) {
         ensureChannels()
+        if (popupsSuppressed || LocalConnectivity.shouldPauseChecks(appContext)) {
+            suppressAlerts()
+            return
+        }
         if (showOngoing) {
             publishOngoing(
                 CheckUiState(
@@ -170,6 +210,10 @@ class StatusNotifier(
     }
 
     private fun maybePopup(result: CheckResult, vpn: VpnStatus) {
+        if (popupsSuppressed || LocalConnectivity.shouldPauseChecks(appContext)) {
+            suppressAlerts()
+            return
+        }
         val now = System.currentTimeMillis()
         val allowed = PopupLimiter.shouldPopup(
             newState = result.state,
@@ -230,6 +274,7 @@ class StatusNotifier(
     private fun enqueueAlert(id: Int, notification: Notification, previousId: Int) {
         pendingAlert?.let { mainHandler.removeCallbacks(it) }
         val task = Runnable {
+            if (popupsSuppressed) return@Runnable
             try {
                 val manager = appContext.getSystemService(NotificationManager::class.java)
                 manager.notify(id, notification)

@@ -13,4 +13,8 @@ data class CheckUiState(
     val checkAttempt: Int = 1,
     val maxAttempts: Int = 1,
     val autoCheck: Boolean = false,
-)
+    val radiosOff: Boolean = false,
+    val airplaneMode: Boolean = false,
+) {
+    val checksPaused: Boolean get() = radiosOff || airplaneMode
+}

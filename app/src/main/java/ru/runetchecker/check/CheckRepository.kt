@@ -20,6 +20,7 @@ import ru.runetchecker.domain.NetworkClassifier
 import ru.runetchecker.domain.NetworkState
 import ru.runetchecker.domain.PROBE_TIMEOUT_SECONDS
 import ru.runetchecker.domain.VpnStatus
+import ru.runetchecker.monitor.LocalConnectivity
 import ru.runetchecker.notify.StatusNotifier
 import ru.runetchecker.probe.DefaultProbeTargets
 import ru.runetchecker.probe.HttpsResourceProbe
@@ -62,7 +63,25 @@ class CheckRepository(
 
     fun cancelOngoing() = notifier.cancelOngoing()
 
+    fun showInterfacesOff() {
+        applyLocalPause()
+    }
+
     fun refreshOngoing() {
+        publishOngoingIfNeeded()
+    }
+
+    private fun applyLocalPause() {
+        val snapshot = LocalConnectivity.snapshot(appContext)
+        _uiState.update {
+            it.copy(
+                isChecking = false,
+                radiosOff = snapshot.shouldPauseChecks && !snapshot.airplaneMode,
+                airplaneMode = snapshot.airplaneMode,
+                countdownSeconds = 0,
+            )
+        }
+        notifier.suppressAlerts()
         publishOngoingIfNeeded()
     }
 
@@ -74,9 +93,16 @@ class CheckRepository(
 
     suspend fun runCheck(auto: Boolean = false) {
         mutex.withLock {
+            if (LocalConnectivity.shouldPauseChecks(appContext)) {
+                applyLocalPause()
+                return
+            }
+            notifier.resumeAlerts()
             _uiState.update {
                 it.copy(
                     isChecking = true,
+                    radiosOff = false,
+                    airplaneMode = false,
                     errorMessage = null,
                     countdownSeconds = PROBE_TIMEOUT_SECONDS,
                     checkAttempt = 1,
@@ -91,29 +117,43 @@ class CheckRepository(
                     while (isActive) {
                         delay(1000)
                         _uiState.update { state ->
-                            if (!state.isChecking) {
+                            if (!state.isChecking || state.checksPaused) {
                                 state
                             } else {
                                 state.copy(countdownSeconds = (state.countdownSeconds - 1).coerceAtLeast(0))
                             }
                         }
-                        publishOngoingIfNeeded()
+                        if (!_uiState.value.checksPaused) {
+                            publishOngoingIfNeeded()
+                        }
                     }
                 }
                 try {
                     val (result, vpn) = coordinator.run { attempt, maxAttempts ->
                         _uiState.update {
-                            it.copy(
-                                checkAttempt = attempt,
-                                maxAttempts = maxAttempts,
-                                countdownSeconds = PROBE_TIMEOUT_SECONDS,
-                            )
+                            if (it.checksPaused) {
+                                it
+                            } else {
+                                it.copy(
+                                    checkAttempt = attempt,
+                                    maxAttempts = maxAttempts,
+                                    countdownSeconds = PROBE_TIMEOUT_SECONDS,
+                                )
+                            }
                         }
-                        publishOngoingIfNeeded()
+                        if (!_uiState.value.checksPaused) {
+                            publishOngoingIfNeeded()
+                        }
+                    }
+                    if (shouldKeepLocalPause()) {
+                        applyLocalPause()
+                        return@coroutineScope
                     }
                     _uiState.update {
                         it.copy(
                             isChecking = false,
+                            radiosOff = false,
+                            airplaneMode = false,
                             result = result,
                             vpn = vpn,
                             countdownSeconds = 0,
@@ -121,13 +161,23 @@ class CheckRepository(
                     }
                     notifier.onCheckFinished(result, vpn, showOngoing = settings.autoCheckEnabled())
                 } catch (cancelled: CancellationException) {
-                    _uiState.update { it.copy(isChecking = false, countdownSeconds = 0) }
+                    if (shouldKeepLocalPause()) {
+                        applyLocalPause()
+                    } else {
+                        _uiState.update { it.copy(isChecking = false, countdownSeconds = 0) }
+                    }
                     throw cancelled
                 } catch (error: Exception) {
+                    if (shouldKeepLocalPause()) {
+                        applyLocalPause()
+                        return@coroutineScope
+                    }
                     val unknown = CheckResult(state = NetworkState.UNKNOWN, probes = emptyList())
                     _uiState.update {
                         it.copy(
                             isChecking = false,
+                            radiosOff = false,
+                            airplaneMode = false,
                             result = unknown,
                             errorMessage = error.message,
                             countdownSeconds = 0,
@@ -145,4 +195,7 @@ class CheckRepository(
             }
         }
     }
+
+    private fun shouldKeepLocalPause(): Boolean =
+        _uiState.value.checksPaused || LocalConnectivity.shouldPauseChecks(appContext)
 }

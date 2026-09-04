@@ -22,6 +22,10 @@
     <string name="status_offline_desc">Интернет фактически отсутствует</string>
     <string name="status_unknown_desc">Не удалось завершить проверку</string>
     <string name="status_idle_desc">Нажмите «Проверить», чтобы узнать состояние сети</string>
+    <string name="status_radios_off">Интернет отключён</string>
+    <string name="status_radios_off_desc">Wi‑Fi и мобильные данные выключены</string>
+    <string name="status_airplane">Режим полёта</string>
+    <string name="status_airplane_desc">Проверки приостановлены</string>
     <string name="theme_system">Авто</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
