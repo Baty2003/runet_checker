@@ -13,6 +13,10 @@
     <string name="host_reachable">доступен</string>
     <string name="host_unreachable">недоступен</string>
     <string name="status_none">—</string>
+    <string name="status_online">Онлайн</string>
+    <string name="status_whitelist">Белый список</string>
+    <string name="status_offline">Офлайн</string>
+    <string name="status_unknown">Неизвестно</string>
     <string name="status_online_desc">Интернет полностью доступен</string>
     <string name="status_whitelist_desc">Доступны только разрешённые ресурсы</string>
     <string name="status_offline_desc">Интернет фактически отсутствует</string>
@@ -29,4 +33,25 @@
     <string name="vpn_on_country">VPN вкл · %1$s</string>
     <string name="vpn_on_unknown">VPN вкл · страна неизвестна</string>
     <string name="vpn_foreign_warning">Российские сервисы могут не работать. Смените сервер VPN или настройте маршрутизацию по приложениям.</string>
+    <string name="vpn_offline_warning">Возможно, у вас не работает VPN</string>
+    <string name="whitelist_vpn_reminder">Включите VPN для белых списков</string>
+    <string name="notification_checking">Проверка…</string>
+    <string name="notification_checking_detail">Попытка %1$d / %2$d · %3$d с</string>
+    <string name="check_attempt">Попытка %1$d / %2$d</string>
+    <string name="check_source_auto">Автопроверка</string>
+    <string name="check_source_manual">Ручная проверка</string>
+    <string name="settings">Настройки</string>
+    <string name="settings_back">Назад</string>
+    <string name="auto_check">Автопроверка</string>
+    <string name="auto_check_hint">Фоновая проверка с постоянным уведомлением</string>
+    <string name="auto_check_interval">Интервал, секунды</string>
+    <string name="auto_check_interval_hint">Минимум %1$d</string>
+    <string name="popup_unlimited">Без ограничений на всплывашки</string>
+    <string name="popup_unlimited_hint">Каждая смена статуса сразу в уведомлении</string>
+    <string name="popup_cooldown">Пауза между всплывашками, секунды</string>
+    <string name="popup_max_hour">Максимум всплывашек в час</string>
+    <string name="channel_status_name">Статус сети</string>
+    <string name="channel_status_desc">Постоянное уведомление с ONLINE / VPN / счётчиками</string>
+    <string name="channel_alerts_name">Смена статуса</string>
+    <string name="channel_alerts_desc">Всплывашка при переходе ONLINE, WHITELIST, OFFLINE или UNKNOWN</string>
 </resources>

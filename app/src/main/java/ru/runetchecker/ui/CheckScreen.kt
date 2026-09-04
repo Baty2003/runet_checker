@@ -1,9 +1,15 @@
 package ru.runetchecker.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,10 +26,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -37,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
@@ -46,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.content.ContextCompat
 import ru.runetchecker.BuildConfig
 import ru.runetchecker.R
 import ru.runetchecker.domain.NetworkState
@@ -65,14 +75,34 @@ fun CheckScreen(
     viewModel: CheckViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
+    fun requestNotificationsIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    if (showSettings) {
+        SettingsScreen(onBack = { showSettings = false })
+        return
+    }
     CheckScreenContent(
         uiState = uiState,
-        onCheckClick = viewModel::check,
+        onCheckClick = {
+            requestNotificationsIfNeeded()
+            viewModel.check()
+        },
         versionName = BuildConfig.VERSION_NAME,
         themeMode = themeMode,
         language = language,
         onThemeModeChange = onThemeModeChange,
         onLanguageChange = onLanguageChange,
+        onSettingsClick = { showSettings = true },
     )
 }
 
@@ -85,6 +115,7 @@ fun CheckScreenContent(
     language: AppLanguage,
     onThemeModeChange: (ThemeMode) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val result = uiState.result
@@ -103,6 +134,7 @@ fun CheckScreenContent(
             language = language,
             onThemeClick = { onThemeModeChange(nextTheme(themeMode)) },
             onLanguageChange = onLanguageChange,
+            onSettingsClick = onSettingsClick,
         )
 
         Column(
@@ -140,7 +172,10 @@ fun CheckScreenContent(
 
             uiState.vpn?.let { vpn ->
                 Spacer(modifier = Modifier.height(16.dp))
-                VpnStatusBlock(vpn = vpn)
+                VpnStatusBlock(
+                    vpn = vpn,
+                    showOfflineVpnWarning = vpn.active && result?.state == NetworkState.OFFLINE,
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -186,7 +221,33 @@ fun CheckScreenContent(
             Spacer(modifier = Modifier.height(32.dp))
 
             if (uiState.isChecking) {
-                CircularProgressIndicator()
+                Box(
+                    modifier = Modifier.size(64.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(64.dp))
+                    Text(
+                        text = uiState.countdownSeconds.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                if (uiState.maxAttempts > 1) {
+                    Text(
+                        text = stringResource(R.string.check_attempt, uiState.checkAttempt, uiState.maxAttempts),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+                Text(
+                    text = stringResource(
+                        if (uiState.autoCheck) R.string.check_source_auto else R.string.check_source_manual,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
@@ -218,20 +279,29 @@ private fun SettingsRow(
     language: AppLanguage,
     onThemeClick: () -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(onClick = onThemeClick) {
-            Icon(
-                imageVector = themeIcon(themeMode),
-                contentDescription = themeLabel(themeMode),
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(themeLabel(themeMode))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = stringResource(R.string.settings),
+                )
+            }
+            TextButton(onClick = onThemeClick) {
+                Icon(
+                    imageVector = themeIcon(themeMode),
+                    contentDescription = themeLabel(themeMode),
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(themeLabel(themeMode))
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
@@ -249,7 +319,7 @@ private fun SettingsRow(
 }
 
 @Composable
-private fun VpnStatusBlock(vpn: VpnStatus) {
+private fun VpnStatusBlock(vpn: VpnStatus, showOfflineVpnWarning: Boolean) {
     val locale = Locale.getDefault()
     val line = when {
         !vpn.active -> stringResource(R.string.vpn_off)
@@ -275,6 +345,14 @@ private fun VpnStatusBlock(vpn: VpnStatus) {
             if (vpn.isForeign) {
                 Text(
                     text = stringResource(R.string.vpn_foreign_warning),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            if (showOfflineVpnWarning) {
+                Text(
+                    text = stringResource(R.string.vpn_offline_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),

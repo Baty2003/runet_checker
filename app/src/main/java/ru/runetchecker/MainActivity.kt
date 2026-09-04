@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import ru.runetchecker.monitor.MonitorService
 import ru.runetchecker.settings.SettingsStore
 import ru.runetchecker.settings.withAppLocale
 import ru.runetchecker.ui.CheckScreen
@@ -28,6 +29,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = SettingsStore(this)
+        if (settings.autoCheckEnabled()) {
+            MonitorService.start(this)
+        }
         enableEdgeToEdge()
         setContent {
             var themeMode by remember { mutableStateOf(settings.themeMode()) }
@@ -42,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onLanguageChange = { language ->
                             settings.setLanguage(language)
+                            (application as RuNetCheckerApp).repository.refreshOngoing()
                             recreate()
                         },
                     )

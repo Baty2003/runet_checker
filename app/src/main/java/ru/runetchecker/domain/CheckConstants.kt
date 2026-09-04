@@ -1,0 +1,8 @@
+package ru.runetchecker.domain
+
+const val PROBE_TIMEOUT_SECONDS = 10
+const val VPN_MAX_ATTEMPTS = 3
+const val AUTO_CHECK_DEFAULT_SECONDS = 30
+const val AUTO_CHECK_MIN_SECONDS = 10
+const val POPUP_COOLDOWN_DEFAULT_SECONDS = 120
+const val POPUP_MAX_PER_HOUR_DEFAULT = 6

@@ -13,6 +13,10 @@
     <string name="host_reachable">reachable</string>
     <string name="host_unreachable">unreachable</string>
     <string name="status_none">—</string>
+    <string name="status_online">Online</string>
+    <string name="status_whitelist">Whitelist</string>
+    <string name="status_offline">Offline</string>
+    <string name="status_unknown">Unknown</string>
     <string name="status_online_desc">Full internet access is available</string>
     <string name="status_whitelist_desc">Only allowed resources are available</string>
     <string name="status_offline_desc">The internet is effectively unavailable</string>
@@ -29,4 +33,25 @@
     <string name="vpn_on_country">VPN on · %1$s</string>
     <string name="vpn_on_unknown">VPN on · country unknown</string>
     <string name="vpn_foreign_warning">Russian services may not work. Switch VPN server or set up per-app routing.</string>
+    <string name="vpn_offline_warning">Your VPN may not be working</string>
+    <string name="whitelist_vpn_reminder">Turn on VPN for whitelist mode</string>
+    <string name="notification_checking">Checking…</string>
+    <string name="notification_checking_detail">Attempt %1$d / %2$d · %3$d s</string>
+    <string name="check_attempt">Attempt %1$d / %2$d</string>
+    <string name="check_source_auto">Auto-check</string>
+    <string name="check_source_manual">Manual check</string>
+    <string name="settings">Settings</string>
+    <string name="settings_back">Back</string>
+    <string name="auto_check">Auto-check</string>
+    <string name="auto_check_hint">Background checks with a persistent notification</string>
+    <string name="auto_check_interval">Interval, seconds</string>
+    <string name="auto_check_interval_hint">Minimum %1$d</string>
+    <string name="popup_unlimited">No popup limits</string>
+    <string name="popup_unlimited_hint">Every status change shows an alert immediately</string>
+    <string name="popup_cooldown">Pause between popups, seconds</string>
+    <string name="popup_max_hour">Maximum popups per hour</string>
+    <string name="channel_status_name">Network status</string>
+    <string name="channel_status_desc">Persistent notification with ONLINE / VPN / counters</string>
+    <string name="channel_alerts_name">Status changes</string>
+    <string name="channel_alerts_desc">Heads-up when switching to ONLINE, WHITELIST, OFFLINE or UNKNOWN</string>
 </resources>
