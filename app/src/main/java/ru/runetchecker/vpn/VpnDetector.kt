@@ -7,13 +7,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import ru.runetchecker.domain.PROBE_TIMEOUT_DEFAULT_SECONDS
 import ru.runetchecker.domain.VpnStatus
 import ru.runetchecker.probe.SharedHttpClient
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
 class VpnDetector(
     context: Context,
     private val client: OkHttpClient = SharedHttpClient.instance,
+    private val timeoutSeconds: () -> Int = { PROBE_TIMEOUT_DEFAULT_SECONDS },
 ) {
     private val appContext = context.applicationContext
 
@@ -42,14 +45,21 @@ class VpnDetector(
     }
 
     suspend fun lookupCountryIso(): String? = withContext(Dispatchers.IO) {
+        val timeout = timeoutSeconds()
         val request = Request.Builder()
             .url(GEO_URL)
             .header("Accept", "application/json")
             .header("User-Agent", USER_AGENT)
             .get()
             .build()
+        val timedClient = client.newBuilder()
+            .connectTimeout(timeout.toLong(), TimeUnit.SECONDS)
+            .readTimeout(timeout.toLong(), TimeUnit.SECONDS)
+            .writeTimeout(timeout.toLong(), TimeUnit.SECONDS)
+            .callTimeout(timeout.toLong(), TimeUnit.SECONDS)
+            .build()
         try {
-            client.newCall(request).execute().use { response ->
+            timedClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext null
                 val body = response.body?.string() ?: return@withContext null
                 parseCountryIso(body)

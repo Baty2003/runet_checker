@@ -8,9 +8,35 @@ import org.junit.Test
 class CheckPolicyTest {
 
     @Test
-    fun maxAttempts_threeWhenVpnOn() {
-        assertEquals(1, CheckPolicy.maxAttempts(vpnActive = false))
-        assertEquals(3, CheckPolicy.maxAttempts(vpnActive = true))
+    fun maxAttempts_oneWithoutVpn() {
+        assertEquals(1, CheckPolicy.maxAttempts(vpnActive = false, configuredMax = 5))
+    }
+
+    @Test
+    fun maxAttempts_usesSettingWhenVpnOn() {
+        assertEquals(2, CheckPolicy.maxAttempts(vpnActive = true, configuredMax = 2))
+        assertEquals(5, CheckPolicy.maxAttempts(vpnActive = true, configuredMax = 9))
+        assertEquals(1, CheckPolicy.maxAttempts(vpnActive = true, configuredMax = 0))
+    }
+
+    @Test
+    fun maxAttempts_oneAfterOfflineEvenWithVpn() {
+        assertEquals(
+            1,
+            CheckPolicy.maxAttempts(
+                vpnActive = true,
+                configuredMax = 5,
+                lastCompletedState = NetworkState.OFFLINE,
+            ),
+        )
+        assertEquals(
+            4,
+            CheckPolicy.maxAttempts(
+                vpnActive = true,
+                configuredMax = 4,
+                lastCompletedState = NetworkState.ONLINE,
+            ),
+        )
     }
 
     @Test
@@ -59,7 +85,7 @@ class CheckPolicyTest {
                 vpnActive = false,
                 result = result(global = 0, whitelist = 0),
                 attempt = 1,
-                maxAttempts = 1,
+                maxAttempts = 5,
             ),
         )
     }
@@ -74,6 +100,12 @@ class CheckPolicyTest {
                 maxAttempts = 3,
             ),
         )
+    }
+
+    @Test
+    fun watchdogDeadline_includesGeoSlack() {
+        assertEquals(20_000L, CheckPolicy.watchdogDeadlineMs(maxAttempts = 3, probeTimeoutSeconds = 5))
+        assertEquals(10_000L, CheckPolicy.watchdogDeadlineMs(maxAttempts = 1, probeTimeoutSeconds = 5))
     }
 
     private fun result(global: Int, whitelist: Int): CheckResult {

@@ -9,6 +9,7 @@
     <string name="technical_details_hint">For advanced users</string>
     <string name="check">Check</string>
     <string name="checking">Checking…</string>
+    <string name="stop_check">Stop</string>
     <string name="counts_placeholder">— / —</string>
     <string name="host_reachable">reachable</string>
     <string name="host_unreachable">unreachable</string>
@@ -49,8 +50,13 @@
     <string name="settings_back">Back</string>
     <string name="auto_check">Auto-check</string>
     <string name="auto_check_hint">Background checks with a persistent notification</string>
+    <string name="notification_stop_auto_check">Turn off</string>
     <string name="auto_check_interval">Interval, seconds</string>
     <string name="auto_check_interval_hint">Minimum %1$d</string>
+    <string name="probe_timeout">Request wait, seconds</string>
+    <string name="probe_timeout_hint">From %1$d to %2$d</string>
+    <string name="check_attempts">Attempts with VPN</string>
+    <string name="check_attempts_hint">From %1$d to %2$d, only when VPN is on</string>
     <string name="battery_unrestricted">Unrestricted battery</string>
     <string name="battery_unrestricted_hint">Keeps auto-check from being put to sleep</string>
     <string name="popup_disabled">Disable popups</string>

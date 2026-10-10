@@ -33,7 +33,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,6 +67,7 @@ import ru.runetchecker.domain.ProbeGroup
 import ru.runetchecker.domain.ProbeResult
 import ru.runetchecker.domain.VpnStatus
 import ru.runetchecker.monitor.LocalConnectivity
+import ru.runetchecker.monitor.MonitorService
 import ru.runetchecker.monitor.requestIgnoreBatteryOptimizations
 import ru.runetchecker.settings.AppLanguage
 import ru.runetchecker.settings.ThemeMode
@@ -81,6 +84,8 @@ fun CheckScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    val app = context.applicationContext as RuNetCheckerApp
+    val autoCheckEnabled by app.settings.autoCheckEnabledFlow.collectAsStateWithLifecycle()
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { }
@@ -92,7 +97,6 @@ fun CheckScreen(
         }
     }
     LaunchedEffect(Unit) {
-        val app = context.applicationContext as RuNetCheckerApp
         if (LocalConnectivity.shouldPauseChecks(context)) {
             app.repository.showInterfacesOff()
         }
@@ -107,10 +111,19 @@ fun CheckScreen(
     }
     CheckScreenContent(
         uiState = uiState,
+        autoCheckEnabled = autoCheckEnabled,
+        onAutoCheckChange = { enabled ->
+            if (enabled) {
+                requestNotificationsIfNeeded()
+                context.requestIgnoreBatteryOptimizations()
+            }
+            MonitorService.setEnabled(context, enabled)
+        },
         onCheckClick = {
             requestNotificationsIfNeeded()
             viewModel.check()
         },
+        onStopClick = { viewModel.stop() },
         versionName = BuildConfig.VERSION_NAME,
         themeMode = themeMode,
         language = language,
@@ -123,7 +136,10 @@ fun CheckScreen(
 @Composable
 fun CheckScreenContent(
     uiState: CheckUiState,
+    autoCheckEnabled: Boolean,
+    onAutoCheckChange: (Boolean) -> Unit,
     onCheckClick: () -> Unit,
+    onStopClick: () -> Unit,
     versionName: String,
     themeMode: ThemeMode,
     language: AppLanguage,
@@ -206,6 +222,12 @@ fun CheckScreenContent(
                 )
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+            AutoCheckToggle(
+                enabled = autoCheckEnabled,
+                onEnabledChange = onAutoCheckChange,
+            )
+
             Spacer(modifier = Modifier.height(32.dp))
 
             ExpandableProbeGroup(
@@ -279,12 +301,24 @@ fun CheckScreenContent(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Button(
-                onClick = onCheckClick,
-                enabled = !uiState.isChecking,
+            Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(if (uiState.isChecking) stringResource(R.string.checking) else stringResource(R.string.check))
+                Button(
+                    onClick = onCheckClick,
+                    enabled = !uiState.isChecking,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(if (uiState.isChecking) stringResource(R.string.checking) else stringResource(R.string.check))
+                }
+                OutlinedButton(
+                    onClick = onStopClick,
+                    enabled = uiState.isChecking,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(stringResource(R.string.stop_check))
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -342,6 +376,36 @@ private fun SettingsRow(
                 onClick = { onLanguageChange(AppLanguage.ENGLISH) },
                 label = { Text("🇬🇧  ${stringResource(R.string.language_en)}") },
             )
+        }
+    }
+}
+
+@Composable
+private fun AutoCheckToggle(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                Text(
+                    text = stringResource(R.string.auto_check),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = stringResource(R.string.auto_check_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = enabled, onCheckedChange = onEnabledChange)
         }
     }
 }

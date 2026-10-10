@@ -1,7 +1,7 @@
 package ru.runetchecker.ui
 
 import ru.runetchecker.domain.CheckResult
-import ru.runetchecker.domain.PROBE_TIMEOUT_SECONDS
+import ru.runetchecker.domain.PROBE_TIMEOUT_DEFAULT_SECONDS
 import ru.runetchecker.domain.VpnStatus
 
 data class CheckUiState(
@@ -9,7 +9,7 @@ data class CheckUiState(
     val result: CheckResult? = null,
     val errorMessage: String? = null,
     val vpn: VpnStatus? = null,
-    val countdownSeconds: Int = PROBE_TIMEOUT_SECONDS,
+    val countdownSeconds: Int = PROBE_TIMEOUT_DEFAULT_SECONDS,
     val checkAttempt: Int = 1,
     val maxAttempts: Int = 1,
     val autoCheck: Boolean = false,

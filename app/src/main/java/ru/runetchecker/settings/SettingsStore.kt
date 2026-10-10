@@ -1,11 +1,20 @@
 package ru.runetchecker.settings
 
 import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import ru.runetchecker.domain.AUTO_CHECK_DEFAULT_SECONDS
 import ru.runetchecker.domain.AUTO_CHECK_MIN_SECONDS
+import ru.runetchecker.domain.CHECK_ATTEMPTS_DEFAULT
+import ru.runetchecker.domain.CHECK_ATTEMPTS_MAX
+import ru.runetchecker.domain.CHECK_ATTEMPTS_MIN
 import ru.runetchecker.domain.NetworkState
 import ru.runetchecker.domain.POPUP_COOLDOWN_DEFAULT_SECONDS
 import ru.runetchecker.domain.POPUP_MAX_PER_HOUR_DEFAULT
+import ru.runetchecker.domain.PROBE_TIMEOUT_DEFAULT_SECONDS
+import ru.runetchecker.domain.PROBE_TIMEOUT_MAX_SECONDS
+import ru.runetchecker.domain.PROBE_TIMEOUT_MIN_SECONDS
 
 class SettingsStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -28,10 +37,14 @@ class SettingsStore(context: Context) {
         prefs.edit().putString(KEY_THEME, mode.name).apply()
     }
 
-    fun autoCheckEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_CHECK, true)
+    private val _autoCheckEnabled = MutableStateFlow(prefs.getBoolean(KEY_AUTO_CHECK, true))
+    val autoCheckEnabledFlow: StateFlow<Boolean> = _autoCheckEnabled.asStateFlow()
+
+    fun autoCheckEnabled(): Boolean = _autoCheckEnabled.value
 
     fun setAutoCheckEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_AUTO_CHECK, enabled).apply()
+        _autoCheckEnabled.value = enabled
     }
 
     fun autoCheckIntervalSeconds(): Int =
@@ -39,6 +52,35 @@ class SettingsStore(context: Context) {
 
     fun setAutoCheckIntervalSeconds(seconds: Int) {
         prefs.edit().putInt(KEY_AUTO_INTERVAL, seconds.coerceAtLeast(AUTO_CHECK_MIN_SECONDS)).apply()
+    }
+
+    fun probeTimeoutSeconds(): Int =
+        prefs.getInt(KEY_PROBE_TIMEOUT, PROBE_TIMEOUT_DEFAULT_SECONDS)
+            .coerceIn(PROBE_TIMEOUT_MIN_SECONDS, PROBE_TIMEOUT_MAX_SECONDS)
+
+    fun setProbeTimeoutSeconds(seconds: Int) {
+        prefs.edit()
+            .putInt(KEY_PROBE_TIMEOUT, seconds.coerceIn(PROBE_TIMEOUT_MIN_SECONDS, PROBE_TIMEOUT_MAX_SECONDS))
+            .apply()
+    }
+
+    fun checkAttempts(): Int =
+        prefs.getInt(KEY_CHECK_ATTEMPTS, CHECK_ATTEMPTS_DEFAULT)
+            .coerceIn(CHECK_ATTEMPTS_MIN, CHECK_ATTEMPTS_MAX)
+
+    fun setCheckAttempts(attempts: Int) {
+        prefs.edit()
+            .putInt(KEY_CHECK_ATTEMPTS, attempts.coerceIn(CHECK_ATTEMPTS_MIN, CHECK_ATTEMPTS_MAX))
+            .apply()
+    }
+
+    fun lastCompletedState(): NetworkState? {
+        val raw = prefs.getString(KEY_LAST_COMPLETED_STATE, null) ?: return null
+        return NetworkState.entries.firstOrNull { it.name == raw }
+    }
+
+    fun recordCompletedState(state: NetworkState) {
+        prefs.edit().putString(KEY_LAST_COMPLETED_STATE, state.name).apply()
     }
 
     fun popupEnabled(): Boolean = prefs.getBoolean(KEY_POPUP_ENABLED, true)
@@ -125,6 +167,9 @@ class SettingsStore(context: Context) {
         private const val KEY_THEME = "theme"
         private const val KEY_AUTO_CHECK = "auto_check"
         private const val KEY_AUTO_INTERVAL = "auto_interval_sec"
+        private const val KEY_PROBE_TIMEOUT = "probe_timeout_sec"
+        private const val KEY_CHECK_ATTEMPTS = "check_attempts"
+        private const val KEY_LAST_COMPLETED_STATE = "last_completed_state"
         private const val KEY_POPUP_ENABLED = "popup_enabled"
         private const val KEY_POPUP_UNLIMITED = "popup_unlimited"
         private const val KEY_POPUP_COOLDOWN = "popup_cooldown_sec"

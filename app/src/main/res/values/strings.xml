@@ -9,6 +9,7 @@
     <string name="technical_details_hint">Для продвинутых пользователей</string>
     <string name="check">Проверить</string>
     <string name="checking">Проверка…</string>
+    <string name="stop_check">Стоп</string>
     <string name="counts_placeholder">— / —</string>
     <string name="host_reachable">доступен</string>
     <string name="host_unreachable">недоступен</string>
@@ -49,8 +50,13 @@
     <string name="settings_back">Назад</string>
     <string name="auto_check">Автопроверка</string>
     <string name="auto_check_hint">Фоновая проверка с постоянным уведомлением</string>
+    <string name="notification_stop_auto_check">Отключить</string>
     <string name="auto_check_interval">Интервал, секунды</string>
     <string name="auto_check_interval_hint">Минимум %1$d</string>
+    <string name="probe_timeout">Ожидание запроса, секунды</string>
+    <string name="probe_timeout_hint">От %1$d до %2$d</string>
+    <string name="check_attempts">Попытки при VPN</string>
+    <string name="check_attempts_hint">От %1$d до %2$d, только если VPN включён</string>
     <string name="battery_unrestricted">Не ограничивать батарею</string>
     <string name="battery_unrestricted_hint">Чтобы автопроверка не засыпала в фоне</string>
     <string name="popup_disabled">Отключить всплывашки</string>

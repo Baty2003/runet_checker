@@ -17,6 +17,7 @@ import ru.runetchecker.R
 import ru.runetchecker.domain.CheckResult
 import ru.runetchecker.domain.NetworkState
 import ru.runetchecker.domain.VpnStatus
+import ru.runetchecker.monitor.AutoCheckActionReceiver
 import ru.runetchecker.monitor.LocalConnectivity
 import ru.runetchecker.monitor.MonitorService
 import ru.runetchecker.settings.SettingsStore
@@ -89,6 +90,7 @@ class StatusNotifier(
             .setContentIntent(openAppIntent(ONGOING_ID))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(stopAutoCheckAction())
 
         if (state.checksPaused) {
             val title = if (state.airplaneMode) {
@@ -320,6 +322,23 @@ class StatusNotifier(
         }
     }
 
+    private fun stopAutoCheckAction(): NotificationCompat.Action {
+        val intent = Intent(appContext, AutoCheckActionReceiver::class.java).apply {
+            action = AutoCheckActionReceiver.ACTION_STOP_AUTO_CHECK
+        }
+        val pending = PendingIntent.getBroadcast(
+            appContext,
+            STOP_AUTO_CHECK_REQUEST,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return NotificationCompat.Action.Builder(
+            0,
+            str(R.string.notification_stop_auto_check),
+            pending,
+        ).build()
+    }
+
     private fun openAppIntent(requestCode: Int): PendingIntent {
         val intent = Intent(appContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -359,6 +378,7 @@ class StatusNotifier(
         const val CHANNEL_ALERTS = "alerts_heads"
         private const val CHANNEL_ALERTS_LEGACY = "alerts"
         const val ONGOING_ID = 1
+        private const val STOP_AUTO_CHECK_REQUEST = 2
         private const val ALERT_ID_START = 1000
         private const val ALERT_DELAY_MS = 800L
         private const val OLD_ALERT_CANCEL_DELAY_MS = 500L

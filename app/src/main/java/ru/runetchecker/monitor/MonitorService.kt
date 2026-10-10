@@ -309,5 +309,17 @@ class MonitorService : Service() {
         fun stop(context: Context) {
             context.stopService(Intent(context, MonitorService::class.java))
         }
+
+        fun setEnabled(context: Context, enabled: Boolean) {
+            val app = context.applicationContext as RuNetCheckerApp
+            app.settings.setAutoCheckEnabled(enabled)
+            if (enabled) {
+                start(context)
+            } else {
+                app.repository.interruptActiveCheck()
+                app.repository.cancelOngoing()
+                stop(context)
+            }
+        }
     }
 }

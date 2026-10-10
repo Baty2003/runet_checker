@@ -40,9 +40,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.runetchecker.R
 import ru.runetchecker.RuNetCheckerApp
 import ru.runetchecker.domain.AUTO_CHECK_MIN_SECONDS
+import ru.runetchecker.domain.CHECK_ATTEMPTS_MAX
+import ru.runetchecker.domain.CHECK_ATTEMPTS_MIN
+import ru.runetchecker.domain.PROBE_TIMEOUT_MAX_SECONDS
+import ru.runetchecker.domain.PROBE_TIMEOUT_MIN_SECONDS
 import ru.runetchecker.monitor.MonitorService
 import ru.runetchecker.monitor.ignoresBatteryOptimizations
 import ru.runetchecker.monitor.openBatteryOptimizationSettings
@@ -55,8 +60,10 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val settings = (context.applicationContext as RuNetCheckerApp).settings
-    var autoCheck by remember { mutableStateOf(settings.autoCheckEnabled()) }
+    val autoCheck by settings.autoCheckEnabledFlow.collectAsStateWithLifecycle()
     var intervalText by remember { mutableStateOf(settings.autoCheckIntervalSeconds().toString()) }
+    var timeoutText by remember { mutableStateOf(settings.probeTimeoutSeconds().toString()) }
+    var attemptsText by remember { mutableStateOf(settings.checkAttempts().toString()) }
     var unlimited by remember { mutableStateOf(settings.popupUnlimited()) }
     var popupsOff by remember { mutableStateOf(!settings.popupEnabled()) }
     var cooldownText by remember { mutableStateOf(settings.popupCooldownSeconds().toString()) }
@@ -111,17 +118,13 @@ fun SettingsScreen(
                 hint = stringResource(R.string.auto_check_hint),
                 checked = autoCheck,
                 onCheckedChange = { enabled ->
-                    autoCheck = enabled
-                    settings.setAutoCheckEnabled(enabled)
                     if (enabled) {
                         if (Build.VERSION.SDK_INT >= 33) {
                             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                         context.requestIgnoreBatteryOptimizations()
-                        MonitorService.start(context)
-                    } else {
-                        MonitorService.stop(context)
                     }
+                    MonitorService.setEnabled(context, enabled)
                 },
             )
 
@@ -142,6 +145,56 @@ fun SettingsScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 enabled = autoCheck,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = timeoutText,
+                onValueChange = { value ->
+                    timeoutText = value.filter { it.isDigit() }
+                    value.filter { it.isDigit() }.toIntOrNull()?.let { seconds ->
+                        if (seconds in PROBE_TIMEOUT_MIN_SECONDS..PROBE_TIMEOUT_MAX_SECONDS) {
+                            settings.setProbeTimeoutSeconds(seconds)
+                        }
+                    }
+                },
+                label = { Text(stringResource(R.string.probe_timeout)) },
+                supportingText = {
+                    Text(
+                        stringResource(
+                            R.string.probe_timeout_hint,
+                            PROBE_TIMEOUT_MIN_SECONDS,
+                            PROBE_TIMEOUT_MAX_SECONDS,
+                        ),
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
+                value = attemptsText,
+                onValueChange = { value ->
+                    attemptsText = value.filter { it.isDigit() }
+                    value.filter { it.isDigit() }.toIntOrNull()?.let { attempts ->
+                        if (attempts in CHECK_ATTEMPTS_MIN..CHECK_ATTEMPTS_MAX) {
+                            settings.setCheckAttempts(attempts)
+                        }
+                    }
+                },
+                label = { Text(stringResource(R.string.check_attempts)) },
+                supportingText = {
+                    Text(
+                        stringResource(
+                            R.string.check_attempts_hint,
+                            CHECK_ATTEMPTS_MIN,
+                            CHECK_ATTEMPTS_MAX,
+                        ),
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
 

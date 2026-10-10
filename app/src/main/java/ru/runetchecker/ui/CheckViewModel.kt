@@ -15,6 +15,11 @@ class CheckViewModel(application: Application) : AndroidViewModel(application) {
 
     private var checkJob: Job? = null
 
+    fun stop() {
+        repository.stopCheck()
+        checkJob?.cancel()
+    }
+
     fun check() {
         checkJob?.cancel()
         checkJob = viewModelScope.launch {

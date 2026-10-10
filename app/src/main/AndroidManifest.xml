@@ -42,6 +42,10 @@
         </service>
 
         <receiver
+            android:name=".monitor.AutoCheckActionReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".monitor.BootReceiver"
             android:exported="true"
             android:enabled="true">
