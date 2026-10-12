@@ -17,11 +17,8 @@ import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.coroutineContext
 import ru.runetchecker.domain.CheckCoordinator
 import ru.runetchecker.domain.CheckPolicy
-import ru.runetchecker.domain.CheckResult
 import ru.runetchecker.domain.NetworkChecker
 import ru.runetchecker.domain.NetworkClassifier
-import ru.runetchecker.domain.NetworkState
-import ru.runetchecker.domain.VpnStatus
 import ru.runetchecker.monitor.LocalConnectivity
 import ru.runetchecker.notify.StatusNotifier
 import ru.runetchecker.probe.DefaultProbeTargets
@@ -108,36 +105,74 @@ class CheckRepository(
                 return
             }
             notifier.resumeAlerts()
-            val timeoutSec = settings.probeTimeoutSeconds()
-            val maxAttempts = CheckPolicy.maxAttempts(
-                vpnActive = vpnDetector.isVpnActive(),
-                configuredMax = settings.checkAttempts(),
-                lastCompletedState = settings.lastCompletedState(),
-            )
-            val deadlineMs = CheckPolicy.watchdogDeadlineMs(maxAttempts, timeoutSec)
+            var failedCycles = 0
+            while (failedCycles < 2) {
+                when (runCycle(auto)) {
+                    CycleEnd.Completed, CycleEnd.Paused -> return
+                    CycleEnd.Failed -> failedCycles++
+                }
+            }
             _uiState.update {
                 it.copy(
-                    isChecking = true,
-                    radiosOff = false,
-                    airplaneMode = false,
+                    isChecking = false,
+                    countdownSeconds = 0,
                     errorMessage = null,
-                    countdownSeconds = timeoutSec,
-                    checkAttempt = 1,
-                    maxAttempts = maxAttempts,
-                    autoCheck = auto,
                 )
             }
             publishOngoingIfNeeded()
-            coroutineScope {
-                activeCheckJob = coroutineContext[Job]
-                val ticker = launch {
-                    while (isActive) {
-                        delay(1000)
-                        _uiState.update { state ->
-                            if (!state.isChecking || state.checksPaused) {
-                                state
+        }
+    }
+
+    private suspend fun runCycle(auto: Boolean): CycleEnd {
+        val timeoutSec = settings.probeTimeoutSeconds()
+        val maxAttempts = CheckPolicy.maxAttempts(
+            vpnActive = vpnDetector.isVpnActive(),
+            configuredMax = settings.checkAttempts(),
+            lastCompletedState = settings.lastCompletedState(),
+        )
+        val deadlineMs = CheckPolicy.watchdogDeadlineMs(maxAttempts, timeoutSec)
+        _uiState.update {
+            it.copy(
+                isChecking = true,
+                radiosOff = false,
+                airplaneMode = false,
+                errorMessage = null,
+                countdownSeconds = timeoutSec,
+                checkAttempt = 1,
+                maxAttempts = maxAttempts,
+                autoCheck = auto,
+            )
+        }
+        publishOngoingIfNeeded()
+        return coroutineScope {
+            activeCheckJob = coroutineContext[Job]
+            val ticker = launch {
+                while (isActive) {
+                    delay(1000)
+                    _uiState.update { state ->
+                        if (!state.isChecking || state.checksPaused) {
+                            state
+                        } else {
+                            state.copy(countdownSeconds = (state.countdownSeconds - 1).coerceAtLeast(0))
+                        }
+                    }
+                    if (!_uiState.value.checksPaused) {
+                        publishOngoingIfNeeded()
+                    }
+                }
+            }
+            try {
+                val (result, vpn) = withTimeout(deadlineMs) {
+                    coordinator.run(maxAttempts, timeoutSec) { attempt, attempts ->
+                        _uiState.update {
+                            if (it.checksPaused) {
+                                it
                             } else {
-                                state.copy(countdownSeconds = (state.countdownSeconds - 1).coerceAtLeast(0))
+                                it.copy(
+                                    checkAttempt = attempt,
+                                    maxAttempts = attempts,
+                                    countdownSeconds = timeoutSec,
+                                )
                             }
                         }
                         if (!_uiState.value.checksPaused) {
@@ -145,88 +180,57 @@ class CheckRepository(
                         }
                     }
                 }
-                try {
-                    val (result, vpn) = withTimeout(deadlineMs) {
-                        coordinator.run(maxAttempts, timeoutSec) { attempt, attempts ->
-                            _uiState.update {
-                                if (it.checksPaused) {
-                                    it
-                                } else {
-                                    it.copy(
-                                        checkAttempt = attempt,
-                                        maxAttempts = attempts,
-                                        countdownSeconds = timeoutSec,
-                                    )
-                                }
-                            }
-                            if (!_uiState.value.checksPaused) {
-                                publishOngoingIfNeeded()
-                            }
-                        }
-                    }
-                    if (shouldKeepLocalPause()) {
-                        applyLocalPause()
-                        return@coroutineScope
-                    }
-                    settings.recordCompletedState(result.state)
-                    _uiState.update {
-                        it.copy(
-                            isChecking = false,
-                            radiosOff = false,
-                            airplaneMode = false,
-                            result = result,
-                            vpn = vpn,
-                            countdownSeconds = 0,
-                        )
-                    }
-                    notifier.onCheckFinished(result, vpn, showOngoing = settings.autoCheckEnabled())
-                } catch (timeout: TimeoutCancellationException) {
-                    if (shouldKeepLocalPause()) {
-                        applyLocalPause()
-                        return@coroutineScope
-                    }
-                    finishUnknown(errorMessage = null)
-                } catch (cancelled: CancellationException) {
-                    if (shouldKeepLocalPause()) {
-                        applyLocalPause()
-                    } else {
-                        _uiState.update { it.copy(isChecking = false, countdownSeconds = 0) }
-                    }
-                    throw cancelled
-                } catch (error: Exception) {
-                    if (shouldKeepLocalPause()) {
-                        applyLocalPause()
-                        return@coroutineScope
-                    }
-                    finishUnknown(error.message)
-                } finally {
-                    ticker.cancel()
-                    activeCheckJob = null
+                if (shouldKeepLocalPause()) {
+                    applyLocalPause()
+                    return@coroutineScope CycleEnd.Paused
                 }
+                settings.recordCompletedState(result.state)
+                _uiState.update {
+                    it.copy(
+                        isChecking = false,
+                        radiosOff = false,
+                        airplaneMode = false,
+                        result = result,
+                        vpn = vpn,
+                        countdownSeconds = 0,
+                    )
+                }
+                notifier.onCheckFinished(result, vpn, showOngoing = settings.autoCheckEnabled())
+                CycleEnd.Completed
+            } catch (_: TimeoutCancellationException) {
+                if (shouldKeepLocalPause()) {
+                    applyLocalPause()
+                    CycleEnd.Paused
+                } else {
+                    CycleEnd.Failed
+                }
+            } catch (cancelled: CancellationException) {
+                if (shouldKeepLocalPause()) {
+                    applyLocalPause()
+                } else {
+                    _uiState.update { it.copy(isChecking = false, countdownSeconds = 0) }
+                }
+                throw cancelled
+            } catch (_: Exception) {
+                if (shouldKeepLocalPause()) {
+                    applyLocalPause()
+                    CycleEnd.Paused
+                } else {
+                    CycleEnd.Failed
+                }
+            } finally {
+                ticker.cancel()
+                activeCheckJob = null
             }
         }
     }
 
-    private fun finishUnknown(errorMessage: String?) {
-        val unknown = CheckResult(state = NetworkState.UNKNOWN, probes = emptyList())
-        settings.recordCompletedState(NetworkState.UNKNOWN)
-        _uiState.update {
-            it.copy(
-                isChecking = false,
-                radiosOff = false,
-                airplaneMode = false,
-                result = unknown,
-                errorMessage = errorMessage,
-                countdownSeconds = 0,
-            )
-        }
-        notifier.onCheckFinished(
-            unknown,
-            _uiState.value.vpn ?: VpnStatus(active = false),
-            showOngoing = settings.autoCheckEnabled(),
-        )
-    }
-
     private fun shouldKeepLocalPause(): Boolean =
         _uiState.value.checksPaused || LocalConnectivity.shouldPauseChecks(appContext)
+
+    private enum class CycleEnd {
+        Completed,
+        Paused,
+        Failed,
+    }
 }
